@@ -32,6 +32,4 @@ public class Walk {
 	public void setPoiList(ArrayList<POI> poiList) {
 		this.poiList = poiList;
 	}
-
-	
 }
