@@ -7,7 +7,7 @@ public class Coordinate {
 	private int coordinateId;
 	
 	
-	public Coordinate(double latitude, double longitude) {
+	public Coordinate(int id,double latitude, double longitude) {
 		super();
 		this.latitude = latitude;
 		this.longitude = longitude;

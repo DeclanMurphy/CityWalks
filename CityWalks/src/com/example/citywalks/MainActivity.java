@@ -1,160 +1,93 @@
 package com.example.citywalks;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 
-import org.apache.http.NameValuePair;
-import org.json.JSONArray;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.Activity;
-import android.app.ProgressDialog;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.Menu;
+import android.os.StrictMode;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.widget.Button;
-import android.widget.ListAdapter;
-import android.widget.SimpleAdapter;
 import android.widget.TextView;
 
 public class MainActivity extends Activity {
+
 	
-    Button btnDisplay;
-    
-    // Progress Dialog
-    private ProgressDialog pDialog;
- 
-    // Creating JSON Parser object
-    JSONParser jParser = new JSONParser();
-    
-    ArrayList<HashMap<String, String>> coList;
- 
-    // url to get all products list
-    private static String url_all_products = "http://192.168.1.102/cwdb/get_all_coordinates.php";
- 
-    // JSON Node names
-    private static final String TAG_SUCCESS = "success";
-    private static final String TAG_COORDINATES = "coordinates";
-    private static final String TAG_CID = "cid";
-    private static final String TAG_LAT = "Latitude";
-    private static final String TAG_LONG = "Longitude";
- 
-    // products JSONArray
-    JSONArray coordinates = null;
+	ArrayList<Coordinate> coList = new ArrayList<Coordinate>();
+	private static String url = "http://192.168.1.101/cwdb/get_all_coordinates.php";
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        
-        // Hashmap for ListView
-        coList = new ArrayList<HashMap<String, String>>();
- 
-        // Loading products in Background Thread
-        //new LoadAllProducts().execute();
- 
-        // Get listview
-        //ListView lv = getListView();
-        
-        btnDisplay = (Button) findViewById(R.id.btnDisplay);        
-        btnDisplay.setOnClickListener(new View.OnClickListener() {
-        	 
-            @Override
-            public void onClick(View view) {
-            	
-            	
-            	getCOs();
-            	
-            	
- 
-            }
-        });        
-    }
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
+		
+		StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+		StrictMode.setThreadPolicy(policy);
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
-    }   
-    
-    /**
-     * getting All products from url
-     * */
-    public void getCOs() {
-        // Building Parameters
-        List<NameValuePair> params = new ArrayList<NameValuePair>();
-        // getting JSON string from URL
-        JSONObject json = jParser.makeHttpRequest(url_all_products, "GET", params);
+		final HttpClient httpclient = new DefaultHttpClient();
+		final HttpPost httppost = new HttpPost(url);
+		final TextView textView = (TextView) findViewById(R.id.tv1);
+		Button btnDisplay = (Button) findViewById(R.id.btnDisplay);
+		
+		
+		btnDisplay.setOnClickListener(new OnClickListener() {
+        	@Override
+			public void onClick(View arg0) {
 
-        // Check your log cat for JSON reponse
-        Log.d("All Products: ", json.toString());
+        		try {
 
-        try {
-            // Checking for SUCCESS TAG
-            int success = json.getInt(TAG_SUCCESS);
+        			HttpResponse response = httpclient.execute(httppost);
+        			String jsonResult = inputStreamToString(
+        					response.getEntity().getContent()).toString();
+        			JSONObject object = new JSONObject(jsonResult);
 
-            if (success == 1) {
-                // products found
-                // Getting Array of Products
-                coordinates = json.getJSONArray(TAG_COORDINATES);
+        			Coordinate c = new Coordinate(0, 0, 0);
 
-                // looping through All Products
-                for (int i = 0; i < coordinates.length(); i++) {
-                    JSONObject c = coordinates.getJSONObject(i);
+        			int id = Integer.parseInt(object.getString("id"));
+        			double longitude = Double
+        					.parseDouble(object.getString("longitude"));
+        			double latitude = Double.parseDouble(object.getString("latitude"));
+        			textView.setText(id + ": " + longitude + " - " + latitude);
 
-                    // Storing each json item in variable
-                    String id = c.getString(TAG_CID);
-                    String latitude = c.getString(TAG_LAT);
-                    String longitude = c.getString(TAG_LONG);
-                    String aaa = id + " " + latitude + " " +  longitude;
-                    // creating new HashMap
-                    HashMap<String, String> map = new HashMap<String, String>();
-
-                    // adding each child node to HashMap key => value
-                    map.put(TAG_CID, id);
-                    map.put(TAG_LAT, latitude);
-                    map.put(TAG_LONG, longitude);
-                    ((TextView)findViewById (R.id.tv1)).setText (aaa);
-                   
-                    // adding HashList to ArrayList
-                    coList.add(map);
-                }
-            } else {
-                // no products found
-                // Launch Add New product Activity               
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        //return null;
-    }
-
-    /**
-     * After completing background task Dismiss the progress dialog
-     * **/
-    protected void onPostExecute(String file_url) {
-        // dismiss the dialog after getting all products
-        //pDialog.dismiss();
-        // updating UI from Background Thread
-        runOnUiThread(new Runnable() {
-            public void run() {
-                /**
-                 * Updating parsed JSON data into ListView
-                 * */
-                ListAdapter adapter = new SimpleAdapter(
-                		MainActivity.this, coList,
-                        R.layout.list_item, new String[] { TAG_CID,TAG_LAT,TAG_LONG},
-                        new int[] { R.id.cid, R.id.name });
-                // updating listview
-                //setListAdapter(adapter);
-            }
+        		} catch (JSONException e) {
+        			e.printStackTrace();
+        		} catch (ClientProtocolException e) {
+        			e.printStackTrace();
+        		} catch (IOException e) {
+        			e.printStackTrace();
+        		}
+				
+			}
         });
+ 
+	}
 
-    }
-    
+	private StringBuilder inputStreamToString(InputStream is) {
+		String rLine = "";
+		StringBuilder answer = new StringBuilder();
+		BufferedReader rd = new BufferedReader(new InputStreamReader(is));
+
+		try {
+			while ((rLine = rd.readLine()) != null) {
+				answer.append(rLine);
+			}
+		}
+
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+		return answer;
+	}
 }
