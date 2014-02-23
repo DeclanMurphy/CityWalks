@@ -5,5 +5,5 @@
     <string name="action_settings">Settings</string>
     <string name="hello_world">Hello world!</string>
     <string name="btn">Request Coordinates</string>
-	<string name="test">NewStr</string>
+	<string name="test"></string>
 </resources>
